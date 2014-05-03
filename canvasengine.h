@@ -12,26 +12,29 @@ class CanvasEngine : public QObject
 {
     Q_OBJECT
 public:
-    explicit CanvasEngine(QObject *parent = 0);
+    explicit CanvasEngine(const QSize size = QSize(2880, 1920), QObject *parent = 0);
     ~CanvasEngine();
     QVariantMap brushSettings() const;
     BrushFeature brushFeatures() const;
     QString currentLayer();
     int count() const{return layers.count();}
     int layerNum() const{return layerNameCounter;}
-    QImage currentCanvas();
     QImage allCanvas();
+    bool fullspeed() const;
+
 public slots:
     void addLayer(const QString &name);
     bool deleteLayer(const QString &name);
-//    void loadLayers();
-//    void saveLayers();
+    //    void loadLayers();
+    //    void saveLayers();
     void pause();
+    void setInput(QIODevice& device);
+    void setOutput(QIODevice& device);
+    void setFullspeed(bool fullspeed);
 
 signals:
-    void newPaintAction(const QVariantMap m);
-    void canvasExported(const QPixmap& pic);
     void parsePaused();
+    void parseEnded();
 private slots:
     void remoteDrawPoint(const QPoint &point,
                          const QVariantMap &brushSettings,
@@ -48,10 +51,8 @@ private slots:
 private:
     void drawLineTo(const QPoint &endPoint, qreal pressure=1.0);
     void drawPoint(const QPoint &point, qreal pressure=1.0);
-    void storeAction(const QVariantMap& map);
-    void sendAction();
     BrushPointer brushFactory(const QString &name);
-    void setBrushFeature(const QString& key, const QVariant& value);
+    void loadBrush();
 
     QSize canvasSize;
     LayerManager layers;
@@ -60,6 +61,8 @@ private:
     QHash<QString, BrushPointer> remoteBrush;
     CanvasBackend* backend_;
     QThread *worker_;
+    QIODevice *output_;
+    bool fullspeed_;
 };
 
 

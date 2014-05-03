@@ -29,7 +29,8 @@ SOURCES += main.cpp \
     brush/maskbased.cpp \
     brush/sketchbrush.cpp \
     brush/waterbased.cpp \
-    canvasbackend.cpp
+    canvasbackend.cpp \
+    misc/packparser.cpp
 
 HEADERS += \
     canvasengine.h \
@@ -47,4 +48,9 @@ HEADERS += \
     brush/maskbased.h \
     brush/sketchbrush.h \
     brush/waterbased.h \
-    canvasbackend.h
+    canvasbackend.h \
+    misc/packparser.h \
+    misc/binary.h
+
+RESOURCES += \
+    res.qrc

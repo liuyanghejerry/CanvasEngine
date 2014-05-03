@@ -19,37 +19,39 @@
 #include "brush/maskbased.h"
 #include "misc/singleton.h"
 
-CanvasEngine::CanvasEngine(QObject *parent) :
+template<typename T>
+void loadBrush_sub_impl()
+{
+    auto& brush_manager = Singleton<BrushManager>::instance();
+    BrushPointer p1(new T);
+    p1->setSettings(p1->defaultSettings());
+    brush_manager.addBrush(p1);
+    qDebug()<<p1->name()<<"loaded";
+}
+
+template<typename T, typename... Targs>
+void loadBrush_sub()
+{
+    loadBrush_sub_impl<T>();
+    loadBrush_sub<Targs...>();
+}
+
+template<>
+void loadBrush_sub<void>()
+{
+}
+
+CanvasEngine::CanvasEngine(const QSize size, QObject *parent) :
     QObject(parent),
-    canvasSize(QSize(720, 480)),
+    canvasSize(size),
     layers(canvasSize),
     image(canvasSize, QImage::Format_ARGB32_Premultiplied),
     layerNameCounter(0),
     backend_(new CanvasBackend(0)),
-    worker_(new QThread(this))
+    worker_(new QThread(this)),
+    output_(nullptr)
 {
-
-    auto& brush_manager = Singleton<BrushManager>::instance();
-    BrushPointer p1(new BasicBrush);
-    p1->setSettings(p1->defaultSettings());
-    BrushPointer p2(new BinaryBrush);
-    p2->setSettings(p1->defaultSettings());
-    BrushPointer p3(new SketchBrush);
-    p3->setSettings(p1->defaultSettings());
-    BrushPointer p4(new BasicEraser);
-    p4->setSettings(p1->defaultSettings());
-    // TODO
-    //    BrushPointer p5(new WaterBased);
-    //    p5->setSettings(p1->defaultSettings());
-    BrushPointer p6(new MaskBased);
-    p6->setSettings(p1->defaultSettings());
-    brush_manager.addBrush(p1);
-    brush_manager.addBrush(p2);
-    brush_manager.addBrush(p3);
-    brush_manager.addBrush(p4);
-    //    brush_manager.addBrush(p5);
-    brush_manager.addBrush(p6);
-
+    loadBrush();
 
     worker_->start();
     backend_->moveToThread(worker_);
@@ -61,9 +63,18 @@ CanvasEngine::CanvasEngine(QObject *parent) :
             backend_, &CanvasBackend::deleteLater);
     connect(this, &CanvasEngine::parsePaused,
             backend_, &CanvasBackend::pauseParse);
+    connect(backend_, &CanvasBackend::archiveParsed,
+            [this](){
+        qDebug()<<"archiveParsed";
+        if(output_){
+            this->allCanvas().save(output_, "png");
+            output_->close();
+        }
+        emit parseEnded();
+    });
 
     for(int i=0;i<10;++i) {
-        addLayer(QString::number(i));
+        addLayer(QString::number(layerNum()));
     }
 }
 
@@ -76,14 +87,6 @@ CanvasEngine::~CanvasEngine()
         worker_->wait();
     }
     this->disconnect();
-}
-
-
-QImage CanvasEngine::currentCanvas()
-{
-    QImage pmp = image;
-    layers.combineLayers(&pmp);
-    return pmp;
 }
 
 QImage CanvasEngine::allCanvas()
@@ -105,6 +108,25 @@ BrushPointer CanvasEngine::brushFactory(const QString &name)
 {
     return Singleton<BrushManager>::instance().makeBrush(name);
 }
+
+void CanvasEngine::loadBrush()
+{
+    loadBrush_sub<BasicBrush, BinaryBrush, SketchBrush, BasicEraser, MaskBased, void>();
+}
+bool CanvasEngine::fullspeed() const
+{
+    return fullspeed_;
+}
+
+void CanvasEngine::setFullspeed(bool fullspeed)
+{
+    fullspeed_ = fullspeed;
+    this->metaObject()->invokeMethod(this->backend_,
+                                   "setFullspeed",
+                                   Qt::AutoConnection,
+                                   Q_ARG(bool, fullspeed_));
+}
+
 
 //void CanvasEngine::loadLayers()
 //{
@@ -146,11 +168,21 @@ void CanvasEngine::pause()
     emit parsePaused();
 }
 
+void CanvasEngine::setInput(QIODevice &device)
+{
+    this->backend_->setInput(device);
+}
+
+void CanvasEngine::setOutput(QIODevice &device)
+{
+    output_ = &device;
+}
+
 void CanvasEngine::remoteDrawPoint(const QPoint &point,
-                             const QVariantMap &brushInfo,
-                             const QString &layer,
-                             const QString clientid,
-                             const qreal pressure)
+                                   const QVariantMap &brushInfo,
+                                   const QString &layer,
+                                   const QString clientid,
+                                   const qreal pressure)
 {
     if(!layers.exists(layer)) return;
     LayerPointer l = layers.layerFrom(layer);
@@ -182,16 +214,14 @@ void CanvasEngine::remoteDrawPoint(const QPoint &point,
         newOne->drawPoint(point, pressure);
         remoteBrush[clientid] = newOne;
     }
-
-    //    update();
 }
 
 
 void CanvasEngine::remoteDrawLine(const QPoint &, const QPoint &end,
-                            const QVariantMap &brushInfo,
-                            const QString &layer,
-                            const QString clientid,
-                            const qreal pressure)
+                                  const QVariantMap &brushInfo,
+                                  const QString &layer,
+                                  const QString clientid,
+                                  const qreal pressure)
 {
     if(!layers.exists(layer)){
         return;
@@ -224,7 +254,6 @@ void CanvasEngine::remoteDrawLine(const QPoint &, const QPoint &end,
         newOne->drawLineTo(end, pressure);
         remoteBrush[clientid] = newOne;
     }
-    //    update();
 }
 
 

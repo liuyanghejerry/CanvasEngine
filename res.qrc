@@ -1,0 +1,5 @@
+<RCC>
+    <qresource prefix="/brush">
+        <file>canvas-print.png</file>
+    </qresource>
+</RCC>

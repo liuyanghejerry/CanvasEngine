@@ -16,6 +16,7 @@ MaskBased::MaskBased() :
     features_ = bits;
 
     name_ = "Crayon";
+    setMask(QImage(":/brush/canvas-print.png"));
 }
 
 void MaskBased::makeStencil(QColor color)
