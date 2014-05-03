@@ -29,15 +29,24 @@ void loadBrush_sub_impl()
     qDebug()<<p1->name()<<"loaded";
 }
 
-template<typename T, typename... Targs>
-void loadBrush_sub()
+template<typename... Targs>
+void loadBrush_sub();
+
+template<typename T, typename... V>
+void loadBrush_sub_helper()
 {
     loadBrush_sub_impl<T>();
-    loadBrush_sub<Targs...>();
+    loadBrush_sub<V...>();
+}
+
+template<typename... Targs>
+void loadBrush_sub()
+{
+    loadBrush_sub_helper<Targs...>();
 }
 
 template<>
-void loadBrush_sub<void>()
+void loadBrush_sub<>()
 {
 }
 
@@ -111,8 +120,9 @@ BrushPointer CanvasEngine::brushFactory(const QString &name)
 
 void CanvasEngine::loadBrush()
 {
-    loadBrush_sub<BasicBrush, BinaryBrush, SketchBrush, BasicEraser, MaskBased, void>();
+    loadBrush_sub<BasicBrush, BinaryBrush, SketchBrush, BasicEraser, MaskBased>();
 }
+
 bool CanvasEngine::fullspeed() const
 {
     return fullspeed_;
