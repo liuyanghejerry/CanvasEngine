@@ -28,24 +28,33 @@ int main(int argc, char *argv[])
 
     const QStringList args = parser.positionalArguments();
 
+    if(args.length() < 4) {
+        parser.showHelp(0);
+        return 0;
+    }
+
     bool fullspeed = parser.isSet(fullSpeedOption);
 
     QSize canvasSize(args.at(0).toInt(),
                      args.at(1).toInt());
     QFile input(args.at(2));
-    if (!input.open(QIODevice::ReadOnly))
+    if (!input.open(QIODevice::ReadOnly)) {
+        qDebug()<<"Lack of input file";
         return -1;
+    }
 
     QFile output(args.at(3));
-    if (!output.open(QIODevice::WriteOnly))
+    if (!output.open(QIODevice::WriteOnly)) {
+        qDebug()<<"Output file unknown";
         return -1;
+    }
 
     CanvasEngine engine(canvasSize);
     engine.setFullspeed(fullspeed);
     engine.setOutput(output);
     engine.setInput(input);
     CanvasEngine::connect(&engine, &CanvasEngine::parseEnded,
-                          qApp, &QCoreApplication::quit);
+                          &app, &QCoreApplication::quit);
 
     return app.exec();
 }
