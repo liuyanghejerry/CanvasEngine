@@ -35,6 +35,7 @@ public slots:
 signals:
     void parsePaused();
     void parseEnded();
+    void canvasUpdated();
 private slots:
     void remoteDrawPoint(const QPoint &point,
                          const QVariantMap &brushSettings,

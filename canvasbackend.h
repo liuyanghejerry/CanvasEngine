@@ -22,7 +22,7 @@ public slots:
     void onIncomingData(const QJsonObject &d);
     void pauseParse();
     void resumeParse();
-    void setInput(QIODevice& device);
+    void setInput(QIODevice &device);
     void setFullspeed(bool full);
 signals:
     void newDataGroup(const QByteArray& d);
@@ -37,6 +37,7 @@ signals:
                         const QString &layer,
                         const QString clientid,
                         const qreal pressure=1.0);
+    void blockParsed();
     void archiveParsed();
 protected:
     void timerEvent(QTimerEvent * event);

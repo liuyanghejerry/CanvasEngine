@@ -9,16 +9,16 @@
 CanvasBackend::CanvasBackend(QObject *parent)
     :QObject(parent),
       parse_timer_id_(0),
+      archive_loaded_(false),
       is_parsed_signal_sent(false),
       pause_(false),
       fullspeed_replay(false)
 {
-    parse_timer_id_ = this->startTimer(10);
-
     connect(&raw_parser_, &PackParser::docGenerated,
             [this](QJsonDocument doc){
         this->onIncomingData(doc.object());
     });
+    parse_timer_id_ = this->startTimer(10);
 }
 
 CanvasBackend::~CanvasBackend()
@@ -119,6 +119,7 @@ void CanvasBackend::parseIncoming()
             QString action = obj.value("action").toString().toLower();
             if(action == "block"){
                 dataBlock(obj.toVariantMap());
+                emit blockParsed();
             }
         }
 
@@ -126,7 +127,9 @@ void CanvasBackend::parseIncoming()
 
     if(archive_loaded_ && !is_parsed_signal_sent){
         emit archiveParsed();
+        this->killTimer(parse_timer_id_);
         is_parsed_signal_sent = true;
+        parse_timer_id_ = 0;
     }
 }
 
@@ -139,11 +142,7 @@ void CanvasBackend::timerEvent(QTimerEvent * event)
 
 QByteArray CanvasBackend::toJson(const QVariant &m)
 {
-#if (QT_VERSION >= QT_VERSION_CHECK(5, 1, 0))
     return QJsonDocument::fromVariant(m).toJson(QJsonDocument::Compact);
-#else
-    return QJsonDocument::fromVariant(m).toJson();
-#endif
 }
 
 QVariant CanvasBackend::fromJson(const QByteArray &d)

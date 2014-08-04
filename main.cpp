@@ -3,6 +3,7 @@
 #include <QFile>
 #include <QDebug>
 #include "canvasengine.h"
+#include "encoder/encoder.h"
 
 int main(int argc, char *argv[])
 {
@@ -19,6 +20,8 @@ int main(int argc, char *argv[])
                                  QCoreApplication::translate("main", "Source file to copy."));
     parser.addPositionalArgument("destination",
                                  QCoreApplication::translate("main", "Destination directory."));
+    parser.addPositionalArgument("config",
+                                 QCoreApplication::translate("main", "Video encoding config file."));
 
     QCommandLineOption fullSpeedOption(QStringList() << "f"
                                        << "fullspeed", "Full speed painting.");
@@ -49,12 +52,35 @@ int main(int argc, char *argv[])
         return -1;
     }
 
-    CanvasEngine engine(canvasSize);
-    engine.setFullspeed(fullspeed);
-    engine.setOutput(output);
-    engine.setInput(input);
-    CanvasEngine::connect(&engine, &CanvasEngine::parseEnded,
-                          &app, &QCoreApplication::quit);
+    QFile configFile(args.at(4));
+    if (!configFile.open(QIODevice::ReadOnly)) {
+        qDebug()<<"Video encoding config file unknown";
+        return -1;
+    }
+    QString config = QString::fromUtf8(configFile.readAll());
+    configFile.close();
+
+    Encoder *encoder = new Encoder(canvasSize, "output.mkv", config);
+
+    CanvasEngine *engine = new CanvasEngine(canvasSize);
+    engine->setFullspeed(fullspeed);
+    engine->setOutput(output);
+    engine->setInput(input);
+    CanvasEngine::connect(engine, &CanvasEngine::canvasUpdated,
+                          [engine, encoder]() {
+        static quint64 times = 0;
+        if(times % 20 == 0) {
+            encoder->onImage(engine->allCanvas());
+        }
+        times++;
+    });
+    CanvasEngine::connect(engine, &CanvasEngine::parseEnded,
+                          [encoder, engine](){
+        encoder->finish();
+        delete encoder;
+        engine->deleteLater();
+        qApp->quit();
+    });
 
     return app.exec();
 }

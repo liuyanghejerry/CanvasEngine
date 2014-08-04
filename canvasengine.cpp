@@ -6,6 +6,7 @@
 #include <QJsonDocument>
 #include <QJsonObject>
 #include <QTimer>
+#include <QTimerEvent>
 #include <QDir>
 #include <QDebug>
 #include <QtCore/qmath.h>
@@ -19,10 +20,11 @@
 #include "brush/maskbased.h"
 #include "misc/singleton.h"
 
+#define brush_manager Singleton<BrushManager>::instance()
+
 template<typename T>
 void loadBrush_sub_impl()
 {
-    auto& brush_manager = Singleton<BrushManager>::instance();
     BrushPointer p1(new T);
     p1->setSettings(p1->defaultSettings());
     brush_manager.addBrush(p1);
@@ -72,6 +74,8 @@ CanvasEngine::CanvasEngine(const QSize size, QObject *parent) :
             backend_, &CanvasBackend::deleteLater);
     connect(this, &CanvasEngine::parsePaused,
             backend_, &CanvasBackend::pauseParse);
+    connect(backend_, &CanvasBackend::blockParsed,
+            this, &CanvasEngine::canvasUpdated);
     connect(backend_, &CanvasBackend::archiveParsed,
             [this](){
         qDebug()<<"archiveParsed";
@@ -181,6 +185,7 @@ void CanvasEngine::pause()
 void CanvasEngine::setInput(QIODevice &device)
 {
     this->backend_->setInput(device);
+//    timer_ = this->startTimer(300);
 }
 
 void CanvasEngine::setOutput(QIODevice &device)
@@ -265,7 +270,6 @@ void CanvasEngine::remoteDrawLine(const QPoint &, const QPoint &end,
         remoteBrush[clientid] = newOne;
     }
 }
-
 
 /* Layer */
 

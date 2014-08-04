@@ -15,6 +15,11 @@ CONFIG += c++11
 
 TEMPLATE = app
 
+QMAKE_CXXFLAGS += -D__STDC_CONSTANT_MACROS
+
+INCLUDEPATH += $$PWD/encoder/libav-10.1/include
+
+win32: LIBS += -L$$PWD/encoder/libav-10.1/lib -lavcodec -lavformat -lavutil -lswscale
 
 SOURCES += main.cpp \
     canvasengine.cpp \
@@ -30,7 +35,8 @@ SOURCES += main.cpp \
     brush/sketchbrush.cpp \
     brush/waterbased.cpp \
     canvasbackend.cpp \
-    misc/packparser.cpp
+    misc/packparser.cpp \
+    encoder/encoder.cpp
 
 HEADERS += \
     canvasengine.h \
@@ -50,7 +56,8 @@ HEADERS += \
     brush/waterbased.h \
     canvasbackend.h \
     misc/packparser.h \
-    misc/binary.h
+    misc/binary.h \
+    encoder/encoder.h
 
 RESOURCES += \
     res.qrc
