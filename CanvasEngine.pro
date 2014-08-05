@@ -11,15 +11,15 @@ QT       += core gui
 TARGET = CanvasEngine
 CONFIG   += console
 CONFIG   -= app_bundle
-CONFIG += c++11
+CONFIG += c++11 shared
 
 TEMPLATE = app
 
 QMAKE_CXXFLAGS += -D__STDC_CONSTANT_MACROS
 
-INCLUDEPATH += $$PWD/encoder/libav-10.1/include
+INCLUDEPATH += $$PWD/encoder/ffmpeg/include
 
-win32: LIBS += -L$$PWD/encoder/libav-10.1/lib -lavcodec -lavformat -lavutil -lswscale
+win32: LIBS += -L$$PWD/encoder/ffmpeg/bin -lavcodec-55 -lavformat-55 -lavutil-52 -lswscale-2
 
 SOURCES += main.cpp \
     canvasengine.cpp \
